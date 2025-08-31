@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>كويز رياضيات تفاعلي</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+      background: #f9f9f9;
+    }
+    .quiz-container {
+      max-width: 500px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .question {
+      font-size: 20px;
+      margin-bottom: 15px;
+    }
+    .options button {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      font-size: 18px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      background: #e0e7ff;
+    }
+    .options button:hover {
+      background: #c7d2fe;
+    }
+    .correct { background: #86efac !important; }
+    .wrong { background: #fca5a5 !important; }
+    .explanation {
+      margin-top: 15px;
+      background: #f3f4f6;
+      padding: 10px;
+      border-radius: 10px;
+    }
+    .next-btn {
+      margin-top: 15px;
+      padding: 10px 20px;
+      font-size: 18px;
+      background: #22c55e;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="quiz-container">
+    <h2 id="progress"></h2>
+    <p class="question" id="question"></p>
+    <div class="options" id="options"></div>
+    <div class="explanation" id="explanation" style="display:none;"></div>
+    <button class="next-btn" id="nextBtn" style="display:none;">التالي ▶️</button>
+  </div>
+
+  <script>
+    const quizData = [
+      { q: "احسب: E = -3 - [5 - (8 + 2)]", opts: ["-10", "-8", "2"], ans: "2", exp: "8+2=10 → 5-10=-5 → -3-(-5)=2" },
+      { q: "احسب: B = 1 - (8-3) + (1-2)", opts: ["-4", "-3", "-5"], ans: "-5", exp: "1-(5)+(-1) = -5" },
+      { q: "احسب: A = 3 + 8×5 - 9", opts: ["34", "37", "32"], ans: "34", exp: "8×5=40 → 3+40-9=34" },
+      { q: "بسط: C = 7x - (3 + 4x) + (2x - 8)", opts: ["5x - 11", "6x - 12", "5x - 12"], ans: "5x - 11", exp: "7x-3-4x+2x-8=5x-11" },
+      { q: "اكتب d=24x²+15x على شكل جداء عوامل.", opts: ["3x(8x+5)", "5x(4x+3)", "x(24x+15)"], ans: "3x(8x+5)", exp: "المشترك 3x → 3x(8x+5)" },
+      { q: "اكتب 300 بالكتابة العلمية:", opts: ["3×10²", "30×10¹", "0.3×10³"], ans: "3×10²", exp: "300=3×10²" },
+      { q: "اكتب 0.94 بالكتابة العلمية:", opts: ["9.4×10⁻¹", "94×10⁻²", "0.94×10⁰"], ans: "9.4×10⁻¹", exp: "0.94=9.4×10⁻¹" },
+      { q: "اكتب 0.00019 بالكتابة العلمية:", opts: ["1.9×10⁻⁴", "19×10⁻⁵", "0.19×10⁻³"], ans: "1.9×10⁻⁴", exp: "0.00019=1.9×10⁻⁴" },
+      { q: "اكتب 2325 بالكتابة العلمية:", opts: ["2.325×10³", "23.25×10²", "232.5×10¹"], ans: "2.325×10³", exp: "2325=2.325×10³" },
+      { q: "أحسب: (5.2×10⁻⁸ × 7.8×10³) / (2.28×10⁵)", opts: ["1.8×10⁻⁹", "1.78×10⁻⁹", "2.0×10⁻⁹"], ans: "1.78×10⁻⁹", exp: "≈1.78×10⁻⁹" },
+      { q: "في دائرة مركزها O وقطر EF، M نقطة من الدائرة. ما نوع المثلث MEF؟", opts: ["قائم", "متساوي الأضلاع", "متساوي الساقين"], ans: "قائم", exp: "المثلث على قطر دائرة قائم" },
+      { q: "في الشكل: (MN)//(BC). إذا AM=1.2, MB=3.6, AN=1.8. احسب BC.", opts: ["6 cm", "7.2 cm", "5.4 cm"], ans: "5.4 cm", exp: "من طاليس: AC=7.2 → BC=7.2-1.8=5.4" }
+    ];
+
+    let current=0, score=0;
+
+    const qElem=document.getElementById("question");
+    const optsElem=document.getElementById("options");
+    const expElem=document.getElementById("explanation");
+    const nextBtn=document.getElementById("nextBtn");
+    const progress=document.getElementById("progress");
+
+    function loadQuestion(){
+      let q=quizData[current];
+      progress.textContent=`سؤال ${current+1} / ${quizData.length}`;
+      qElem.textContent=q.q;
+      optsElem.innerHTML="";
+      expElem.style.display="none";
+      nextBtn.style.display="none";
+      q.opts.forEach(opt=>{
+        let btn=document.createElement("button");
+        btn.textContent=opt;
+        btn.onclick=()=>selectAnswer(opt,btn);
+        optsElem.appendChild(btn);
+      });
+    }
+
+    function selectAnswer(opt,btn){
+      let q=quizData[current];
+      [...optsElem.children].forEach(b=>b.disabled=true);
+      if(opt===q.ans){
+        btn.classList.add("correct");
+        score++;
+      }else{
+        btn.classList.add("wrong");
+      }
+      expElem.style.display="block";
+      expElem.textContent="الشرح: "+q.exp;
+      nextBtn.style.display="inline-block";
+    }
+
+    nextBtn.onclick=()=>{
+      current++;
+      if(current<quizData.length){
+        loadQuestion();
+      }else{
+        document.querySelector(".quiz-container").innerHTML=`<h2>النتيجة النهائية</h2><p>أجبت ${score} من ${quizData.length} إجابة صحيحة ✅</p>`;
+      }
+    }
+
+    loadQuestion();
+  </script>
+</body>
+</html>
